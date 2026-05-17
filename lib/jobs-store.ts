@@ -121,6 +121,7 @@ export const useJobsStore = create<JobsStore>()(
     }),
     {
       name: 'changsin-jobs',
+      skipHydration: true,
       version: 1,
       migrate: (persisted: unknown) => {
         const state = persisted as { jobs?: Job[] }

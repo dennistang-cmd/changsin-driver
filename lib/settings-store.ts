@@ -101,6 +101,7 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'changsin-settings',
+      skipHydration: true,
       version: 1,
       migrate: (persisted: unknown) => {
         const state = persisted as { jobTypes?: JobTypeSetting[] }

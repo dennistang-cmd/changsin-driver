@@ -34,7 +34,7 @@ export const useStaffStore = create<StaffStore>()(
         staff: s.staff.map(m => m.id === id ? { ...m, isActive: !m.isActive } : m),
       })),
     }),
-    { name: 'changsin-staff' }
+    { name: 'changsin-staff', skipHydration: true }
   )
 )
 
