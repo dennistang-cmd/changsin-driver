@@ -2,14 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Upload, LayoutDashboard, ClipboardList, Users, Settings } from 'lucide-react'
+import { Upload, LayoutDashboard, ClipboardList, Users, Settings, Receipt } from 'lucide-react'
 
 const tabs = [
-  { href: '/upload', label: 'Upload', icon: Upload },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/jobs', label: 'Jobs', icon: ClipboardList },
-  { href: '/staff', label: 'Staff', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/upload',     label: 'Upload',    icon: Upload },
+  { href: '/dashboard',  label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/jobs',       label: 'Jobs',      icon: ClipboardList },
+  { href: '/commission', label: 'Report',    icon: Receipt },
+  { href: '/staff',      label: 'Staff',     icon: Users },
+  { href: '/settings',   label: 'Settings',  icon: Settings },
 ]
 
 export default function BottomNav() {
@@ -19,7 +20,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-inset-bottom">
       <div className="max-w-md mx-auto flex">
         {tabs.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href === '/jobs' && pathname.startsWith('/jobs'))
+          const active = pathname === href || (href !== '/' && pathname.startsWith(href) && href !== '/upload')
           return (
             <Link
               key={href}
