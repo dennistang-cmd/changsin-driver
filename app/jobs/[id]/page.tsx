@@ -2,15 +2,21 @@
 
 import { use, useState } from 'react'
 import { notFound, useRouter } from 'next/navigation'
-import { mockJobs } from '@/lib/mock-data'
+import { useJobsStore } from '@/lib/jobs-store'
 import StatusBadge from '@/components/StatusBadge'
 import PhotoUpload from '@/components/PhotoUpload'
 import Timeline from '@/components/Timeline'
 import { WorkResult, JobStatus } from '@/types'
 import {
   ArrowLeft, User, Phone, MapPin, Package, ShieldCheck,
-  CheckCircle2, XCircle, RotateCcw, ChevronDown,
+  CheckCircle2, XCircle, RotateCcw, ChevronDown, Check, Plus,
 } from 'lucide-react'
+import { useStaffStore } from '@/lib/staff-store'
+
+function mapWorkResultToStatus(result: WorkResult | ''): JobStatus {
+  if (!result || result === 'completed') return 'ongoing'
+  return result as JobStatus
+}
 
 const workResultOptions: { value: WorkResult; label: string }[] = [
   { value: 'completed', label: 'Completed' },
@@ -31,33 +37,99 @@ const remarksPlaceholders = [
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
+  const jobs = useJobsStore(s => s.jobs)
 
-  const job = mockJobs.find(j => j.id === id)
-  if (!job) notFound()
+  const job = jobs.find(j => j.id === id)
+  if (!job) return notFound()
 
   const [workResult, setWorkResult] = useState<WorkResult | ''>(job.workResult ?? '')
   const [remarks, setRemarks] = useState(job.remarks ?? '')
   const [photos, setPhotos] = useState(job.photos)
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState(job.verifyStatus)
+  const [commissionInput, setCommissionInput] = useState(
+    job.commissionAmount !== undefined ? String(job.commissionAmount) : ''
+  )
+  const [commissionError, setCommissionError] = useState(false)
+  const [showRevisitModal, setShowRevisitModal] = useState(false)
+  const [revisitStaff, setRevisitStaff] = useState('')
+  const [revisitNotes, setRevisitNotes] = useState('')
+  const [revisitCreated, setRevisitCreated] = useState<{ id: string; jobNumber: string } | null>(null)
+  const updateJob = useJobsStore(s => s.updateJob)
+  const addJob = useJobsStore(s => s.addJob)
+  const allStaff = useStaffStore(s => s.staff)
+  const fieldStaff = allStaff.filter(s => s.isActive && s.role !== 'boss' && s.role !== 'secretary')
 
   function handleSave() {
     setSaving(true)
-    setTimeout(() => setSaving(false), 1200)
+    updateJob(id, {
+      photos,
+      workResult: workResult || undefined,
+      remarks,
+      status: mapWorkResultToStatus(workResult),
+      timelineLabel: 'Progress Saved',
+    })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
-  function handleSubmit() {
+  function handleSubmitForVerify() {
     setSubmitting(true)
-    setTimeout(() => setSubmitting(false), 1500)
+    updateJob(id, {
+      photos,
+      workResult: workResult || undefined,
+      remarks,
+      status: 'waiting_verify',
+      timelineLabel: 'Submitted For Verification',
+    })
+    setTimeout(() => setSubmitting(false), 600)
   }
 
   function handleVerify() {
+    const amount = parseFloat(commissionInput)
+    if (commissionInput.trim() === '' || isNaN(amount) || amount < 0) {
+      setCommissionError(true)
+      return
+    }
+    setCommissionError(false)
     setVerifyStatus('verified')
+    updateJob(id, {
+      verifyStatus: 'verified',
+      status: 'verified',
+      commissionAmount: amount,
+      timelineLabel: `Work Verified · Commission RM${amount.toFixed(2)}`,
+    })
   }
 
-  function handleReject() {
+  function handleRequestRevisit() {
+    setShowRevisitModal(true)
+  }
+
+  function handleConfirmRevisit() {
+    const staffName = fieldStaff.find(s => s.id === revisitStaff)?.name
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const j = job!
+    const newJob = addJob({
+      type: j.type,
+      customerName: j.customer.name,
+      phone: j.customer.phone,
+      address: j.customer.address,
+      jobNumber: '',
+      product: j.product,
+      notes: revisitNotes || `Revisit from ${j.jobNumber}`,
+      assignedStaff: staffName ? [staffName] : undefined,
+    })
+    updateJob(id, {
+      verifyStatus: 'rejected',
+      status: 'need_revisit',
+      timelineLabel: `Revisit Requested · New Job ${newJob.jobNumber}`,
+    })
     setVerifyStatus('rejected')
+    setShowRevisitModal(false)
+    setRevisitCreated({ id: newJob.id, jobNumber: newJob.jobNumber })
   }
 
   return (
@@ -77,10 +149,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       <div className="flex-1 px-4 py-4 flex flex-col gap-4">
 
         {/* 1. Assigned Staff */}
-        {job.assignedStaff && (
-          <div className="flex items-center gap-2 bg-blue-50 rounded-xl px-3 py-2">
-            <User size={15} className="text-blue-500 shrink-0" />
-            <span className="text-sm font-medium text-blue-700">{job.assignedStaff}</span>
+        {job.assignedStaff && job.assignedStaff.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {job.assignedStaff.map(name => (
+              <div key={name} className="flex items-center gap-1.5 bg-blue-50 rounded-xl px-3 py-2">
+                <User size={14} className="text-blue-500 shrink-0" />
+                <span className="text-sm font-medium text-blue-700">{name}</span>
+              </div>
+            ))}
           </div>
         )}
 
@@ -154,6 +230,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
         {/* 6. Verification */}
         <Section title="Verification">
+          {/* Status badge */}
           <div className={`flex items-center gap-2 rounded-xl px-3 py-2 mb-3 ${
             verifyStatus === 'verified' ? 'bg-green-50' :
             verifyStatus === 'rejected' ? 'bg-red-50' : 'bg-gray-50'
@@ -169,24 +246,67 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               verifyStatus === 'verified' ? 'text-green-700' :
               verifyStatus === 'rejected' ? 'text-red-700' : 'text-gray-500'
             }`}>
-              {verifyStatus === 'verified' ? 'Verified' : verifyStatus === 'rejected' ? 'Rejected' : 'Pending Verification'}
+              {verifyStatus === 'verified'
+                ? `Verified · Commission RM${job.commissionAmount?.toFixed(2) ?? commissionInput}`
+                : verifyStatus === 'rejected' ? 'Revisit Requested'
+                : 'Pending Verification'}
             </span>
           </div>
 
+          {/* Revisit created notice */}
+          {revisitCreated && (
+            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 mb-3">
+              <Plus size={14} className="text-blue-500 shrink-0" />
+              <p className="text-xs text-blue-700">New revisit job created: <span className="font-semibold">{revisitCreated.jobNumber}</span></p>
+              <button
+                onClick={() => router.push(`/jobs/${revisitCreated.id}`)}
+                className="ml-auto text-xs text-blue-600 font-semibold underline"
+              >
+                View
+              </button>
+            </div>
+          )}
+
           {verifyStatus === 'pending' && (
-            <div className="flex gap-2">
-              <button
-                onClick={handleVerify}
-                className="flex-1 h-11 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 active:scale-95 transition-all"
-              >
-                Verify Work
-              </button>
-              <button
-                onClick={handleReject}
-                className="flex-1 h-11 rounded-xl bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 active:scale-95 transition-all"
-              >
-                Request Revisit
-              </button>
+            <div className="flex flex-col gap-3">
+              {/* Commission input */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 mb-1.5 block">
+                  Commission Amount (RM) <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">RM</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={commissionInput}
+                    onChange={e => { setCommissionInput(e.target.value); setCommissionError(false) }}
+                    className={`w-full rounded-xl border pl-10 pr-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      commissionError ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'
+                    }`}
+                  />
+                </div>
+                {commissionError && (
+                  <p className="text-xs text-red-500 mt-1">Please enter commission amount (RM 0 if none)</p>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleVerify}
+                  className="flex-1 h-11 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 active:scale-95 transition-all"
+                >
+                  Verify Work
+                </button>
+                <button
+                  onClick={handleRequestRevisit}
+                  className="flex-1 h-11 rounded-xl bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 active:scale-95 transition-all"
+                >
+                  Request Revisit
+                </button>
+              </div>
             </div>
           )}
         </Section>
@@ -197,22 +317,82 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         </Section>
       </div>
 
+      {/* Revisit Modal */}
+      {showRevisitModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+          <div className="w-full max-w-md bg-white rounded-t-3xl px-5 py-6 flex flex-col gap-4">
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Request Revisit</h3>
+              <p className="text-xs text-gray-400 mt-0.5">A new job will be created with the same customer details.</p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-600">Assign to Staff <span className="text-gray-400 font-normal">(optional)</span></label>
+              <div className="relative">
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <select
+                  value={revisitStaff}
+                  onChange={e => setRevisitStaff(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-gray-200 bg-white pl-9 pr-10 py-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">— Unassigned —</option>
+                  {fieldStaff.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-600">Revisit Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+              <textarea
+                rows={2}
+                placeholder={`e.g. Revisit from ${job.jobNumber} — customer issue unresolved`}
+                value={revisitNotes}
+                onChange={e => setRevisitNotes(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowRevisitModal(false)}
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-95 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmRevisit}
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 active:scale-95 transition-all"
+              >
+                Create Revisit Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 8. Sticky Bottom Action Bar */}
       <div className="sticky bottom-20 bg-white border-t border-gray-100 px-4 py-3 flex gap-2">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex-1 h-11 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60"
+          className={`h-11 rounded-xl border text-sm font-semibold active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5 ${
+            workResult === 'completed' ? 'flex-none px-5 border-gray-200 text-gray-700 hover:bg-gray-50' : 'flex-1 border-gray-200 text-gray-700 hover:bg-gray-50'
+          } ${saved ? 'border-green-300 text-green-700 bg-green-50' : ''}`}
         >
-          {saving ? 'Saving...' : 'Save Progress'}
+          {saved ? <><Check size={15} /> Saved</> : saving ? 'Saving...' : 'Save Progress'}
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="flex-1 h-11 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60"
-        >
-          {submitting ? 'Submitting...' : 'Submit for Verify'}
-        </button>
+        {workResult === 'completed' && (
+          <button
+            onClick={handleSubmitForVerify}
+            disabled={submitting}
+            className="flex-1 h-11 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60"
+          >
+            {submitting ? 'Submitting...' : 'Submit for Verify'}
+          </button>
+        )}
       </div>
     </div>
   )

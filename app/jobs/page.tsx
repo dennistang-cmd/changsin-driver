@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { mockJobs } from '@/lib/mock-data'
+import { useJobsStore } from '@/lib/jobs-store'
 import JobCard from '@/components/JobCard'
 import { Job, JobStatus } from '@/types'
 import { Search } from 'lucide-react'
@@ -43,10 +43,11 @@ function SkeletonCard() {
 }
 
 export default function JobsPage() {
+  const jobs = useJobsStore(s => s.jobs)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
 
-  const filtered = mockJobs.filter(job => {
+  const filtered = jobs.filter(job => {
     const matchSearch = !search ||
       job.customer.name.toLowerCase().includes(search.toLowerCase()) ||
       job.jobNumber.toLowerCase().includes(search.toLowerCase()) ||

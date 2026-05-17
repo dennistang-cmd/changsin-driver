@@ -19,9 +19,9 @@ export type WorkResult =
   | 'need_revisit'
   | 'customer_no_show'
 
-export type UserRole = 'driver' | 'installer' | 'technician' | 'secretary' | 'boss'
+export type UserRole = 'driver' | 'installer' | 'technician' | 'secretary' | 'boss' | 'sales_assistant'
 
-export type JobType = 'DO' | 'JO' | 'Repair' | 'Installation'
+export type JobType = string
 
 export type CommissionType = 'fixed' | 'percentage'
 
@@ -51,7 +51,7 @@ export interface Job {
     address: string
   }
   product: string
-  assignedStaff?: string
+  assignedStaff?: string[]
   status: JobStatus
   workResult?: WorkResult
   remarks?: string
