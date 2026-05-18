@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI from 'openai'
 
 const PROMPT = `You are an OCR assistant for an electrical company in Malaysia.
 Extract the following fields from this delivery order or job order document image.
@@ -15,42 +16,42 @@ Return ONLY valid JSON with these exact keys:
 If a field is not visible or unclear, return an empty string for that field.
 Do not include any text outside the JSON.`
 
+const client = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: process.env.DEEPSEEK_API_KEY!,
+})
+
 export async function POST(req: NextRequest) {
   try {
     const { image } = await req.json()
     if (!image) return NextResponse.json({ error: 'No image provided' }, { status: 400 })
 
-    const apiKey = process.env.DEEPSEEK_API_KEY
-    if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
-
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'deepseek-vl2',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: PROMPT },
-            ],
-          },
-        ],
-        max_tokens: 300,
-      }),
-    })
-
-    if (!response.ok) {
-      const err = await response.text()
-      return NextResponse.json({ error: `DeepSeek error: ${err}` }, { status: 500 })
+    if (!process.env.DEEPSEEK_API_KEY) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
-    const result = await response.json()
-    const text = result.choices?.[0]?.message?.content ?? ''
+    const params = {
+      model: 'deepseek-v4-pro',
+      messages: [
+        {
+          role: 'user' as const,
+          content: [
+            { type: 'image_url', image_url: { url: image } },
+            { type: 'text', text: PROMPT },
+          ] as OpenAI.Chat.ChatCompletionContentPart[],
+        },
+      ],
+      thinking: { type: 'enabled' },
+      reasoning_effort: 'high',
+      max_tokens: 800,
+      stream: false as const,
+    }
+
+    const completion = await client.chat.completions.create(
+      params as unknown as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+    )
+
+    const text = completion.choices[0]?.message?.content ?? ''
 
     // Strip markdown code fences if present
     const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()

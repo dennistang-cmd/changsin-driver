@@ -200,87 +200,115 @@ function JobTypeSettings() {
   )
 }
 
+const ALL_PERMISSIONS = [
+  'Upload DO/JO',
+  'Upload JO',
+  'Upload Repair',
+  'Upload Installation',
+  'Update Status',
+  'Update Progress',
+  'Upload Evidence',
+  'Create Jobs',
+  'Edit Jobs',
+  'Assign Staff',
+  'Verify Work',
+  'Create Quotation',
+  'View Jobs',
+  'View Reports',
+  'View Commission',
+  'Full Access',
+  'All Reports',
+  'Staff Mgmt',
+  'Commission',
+]
+
 function RolePermissionsSettings() {
   const { rolePermissions, addPermission, removePermission, updateRoleLabel } = useSettingsStore()
   const [addingFor, setAddingFor] = useState<string | null>(null)
-  const [newPerm, setNewPerm] = useState('')
+  const [selected, setSelected] = useState('')
   const [editingLabel, setEditingLabel] = useState<string | null>(null)
   const [labelDraft, setLabelDraft] = useState('')
 
   function handleAddPerm(role: string) {
-    if (!newPerm.trim()) return
-    addPermission(role, newPerm.trim())
-    setNewPerm('')
+    if (!selected) return
+    addPermission(role, selected)
+    setSelected('')
     setAddingFor(null)
   }
 
   return (
     <div className="flex flex-col gap-5 pt-3">
-      {rolePermissions.map(({ role, label, permissions }) => (
-        <div key={role}>
-          <div className="flex items-center gap-2 mb-2">
-            {editingLabel === role ? (
-              <>
-                <input
-                  autoFocus
-                  value={labelDraft}
-                  onChange={e => setLabelDraft(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') { updateRoleLabel(role, labelDraft); setEditingLabel(null) }
-                    if (e.key === 'Escape') setEditingLabel(null)
-                  }}
-                  className="flex-1 rounded-lg border border-blue-300 px-2 py-0.5 text-xs font-bold text-gray-700 uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button onClick={() => { updateRoleLabel(role, labelDraft); setEditingLabel(null) }} className="p-1 rounded hover:bg-green-50">
-                  <Check size={12} className="text-green-600" />
+      {rolePermissions.map(({ role, label, permissions }) => {
+        const available = ALL_PERMISSIONS.filter(p => !permissions.includes(p))
+        return (
+          <div key={role}>
+            <div className="flex items-center gap-2 mb-2">
+              {editingLabel === role ? (
+                <>
+                  <input
+                    autoFocus
+                    value={labelDraft}
+                    onChange={e => setLabelDraft(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { updateRoleLabel(role, labelDraft); setEditingLabel(null) }
+                      if (e.key === 'Escape') setEditingLabel(null)
+                    }}
+                    className="flex-1 rounded-lg border border-blue-300 px-2 py-0.5 text-xs font-bold text-gray-700 uppercase tracking-wide focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button onClick={() => { updateRoleLabel(role, labelDraft); setEditingLabel(null) }} className="p-1 rounded hover:bg-green-50">
+                    <Check size={12} className="text-green-600" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">{label}</p>
+                  <button onClick={() => { setEditingLabel(role); setLabelDraft(label) }} className="p-0.5 rounded hover:bg-gray-100">
+                    <Pencil size={11} className="text-gray-400" />
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {permissions.map(perm => (
+                <span key={perm} className="inline-flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-600 pl-2 pr-1 py-1 rounded-lg">
+                  {perm}
+                  <button onClick={() => removePermission(role, perm)} className="hover:bg-gray-300 rounded p-0.5">
+                    <X size={10} className="text-gray-500" />
+                  </button>
+                </span>
+              ))}
+              {addingFor === role ? (
+                <div className="flex items-center gap-1 w-full mt-1">
+                  <select
+                    autoFocus
+                    value={selected}
+                    onChange={e => setSelected(e.target.value)}
+                    className="flex-1 rounded-lg border border-blue-300 px-2 py-1 text-xs text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">Select permission…</option>
+                    {available.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => handleAddPerm(role)} disabled={!selected} className="p-1 rounded hover:bg-green-50 disabled:opacity-40">
+                    <Check size={12} className="text-green-600" />
+                  </button>
+                  <button onClick={() => { setAddingFor(null); setSelected('') }} className="p-1 rounded hover:bg-gray-100">
+                    <X size={12} className="text-gray-400" />
+                  </button>
+                </div>
+              ) : available.length > 0 ? (
+                <button
+                  onClick={() => { setAddingFor(role); setSelected('') }}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-500 border border-dashed border-blue-300 px-2 py-1 rounded-lg hover:bg-blue-50"
+                >
+                  <Plus size={11} /> Add
                 </button>
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">{label}</p>
-                <button onClick={() => { setEditingLabel(role); setLabelDraft(label) }} className="p-0.5 rounded hover:bg-gray-100">
-                  <Pencil size={11} className="text-gray-400" />
-                </button>
-              </>
-            )}
+              ) : null}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {permissions.map(perm => (
-              <span key={perm} className="inline-flex items-center gap-1 text-xs font-medium bg-gray-100 text-gray-600 pl-2 pr-1 py-1 rounded-lg">
-                {perm}
-                <button onClick={() => removePermission(role, perm)} className="hover:bg-gray-300 rounded p-0.5">
-                  <X size={10} className="text-gray-500" />
-                </button>
-              </span>
-            ))}
-            {addingFor === role ? (
-              <div className="flex items-center gap-1">
-                <input
-                  autoFocus
-                  value={newPerm}
-                  onChange={e => setNewPerm(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleAddPerm(role); if (e.key === 'Escape') setAddingFor(null) }}
-                  placeholder="New permission"
-                  className="w-32 rounded-lg border border-blue-300 px-2 py-0.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <button onClick={() => handleAddPerm(role)} className="p-1 rounded hover:bg-green-50">
-                  <Check size={12} className="text-green-600" />
-                </button>
-                <button onClick={() => { setAddingFor(null); setNewPerm('') }} className="p-1 rounded hover:bg-gray-100">
-                  <X size={12} className="text-gray-400" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => { setAddingFor(role); setNewPerm('') }}
-                className="inline-flex items-center gap-0.5 text-xs font-medium text-blue-500 border border-dashed border-blue-300 px-2 py-1 rounded-lg hover:bg-blue-50"
-              >
-                <Plus size={11} /> Add
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import './globals.css'
 import BottomNav from '@/components/BottomNav'
 import StoreHydration from '@/components/StoreHydration'
+import AuthGuard from '@/components/AuthGuard'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,7 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full">
         <StoreHydration />
-        <main className="max-w-md mx-auto min-h-screen pb-20">
+        <AuthGuard />
+        <main className="max-w-md mx-auto min-h-screen pb-28">
           {children}
         </main>
         <BottomNav />

@@ -69,6 +69,7 @@ export interface Staff {
   phone: string
   role: UserRole
   loginId: string
+  password?: string
   isActive: boolean
   commissionType: CommissionType
   commissionAmount: number
