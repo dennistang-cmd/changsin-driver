@@ -123,7 +123,7 @@ export default function UploadPage() {
     setForm(f => ({ ...f, [field]: value }))
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
 
@@ -131,7 +131,7 @@ export default function UploadPage() {
       .map(id => activeStaff.find(s => s.id === id)?.name)
       .filter(Boolean) as string[]
 
-    const job = addJob({
+    const job = await addJob({
       type: jobType,
       customerName: form.customerName,
       phone: form.phone,
@@ -143,10 +143,8 @@ export default function UploadPage() {
       photo: capturedImage ?? undefined,
     })
 
-    setTimeout(() => {
-      setSubmitting(false)
-      setSubmittedJob({ id: job.id, jobNumber: job.jobNumber })
-    }, 600)
+    setSubmitting(false)
+    setSubmittedJob({ id: job.id, jobNumber: job.jobNumber })
   }
 
   function handleUploadAnother() {

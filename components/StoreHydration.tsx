@@ -9,9 +9,9 @@ import { useAuthStore } from '@/lib/auth-store'
 export default function StoreHydration() {
   useEffect(() => {
     useAuthStore.persist.rehydrate()
-    useJobsStore.persist.rehydrate()
-    useStaffStore.persist.rehydrate()
-    useSettingsStore.persist.rehydrate()
+    useJobsStore.getState().loadJobs()
+    useStaffStore.getState().loadStaff()
+    useSettingsStore.getState().loadSettings()
   }, [])
 
   return null

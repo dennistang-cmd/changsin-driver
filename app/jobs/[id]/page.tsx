@@ -62,9 +62,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const allStaff = useStaffStore(s => s.staff)
   const fieldStaff = allStaff.filter(s => s.isActive && s.role !== 'boss' && s.role !== 'secretary')
 
-  function handleSave() {
+  async function handleSave() {
     setSaving(true)
-    updateJob(id, {
+    await updateJob(id, {
       photos,
       workResult: workResult || undefined,
       remarks,
@@ -76,19 +76,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setTimeout(() => setSaved(false), 2000)
   }
 
-  function handleSubmitForVerify() {
+  async function handleSubmitForVerify() {
     setSubmitting(true)
-    updateJob(id, {
+    await updateJob(id, {
       photos,
       workResult: workResult || undefined,
       remarks,
       status: 'waiting_verify',
       timelineLabel: 'Submitted For Verification',
     })
-    setTimeout(() => setSubmitting(false), 600)
+    setSubmitting(false)
   }
 
-  function handleVerify() {
+  async function handleVerify() {
     const amount = parseFloat(commissionInput)
     if (commissionInput.trim() === '' || isNaN(amount) || amount < 0) {
       setCommissionError(true)
@@ -96,7 +96,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
     setCommissionError(false)
     setVerifyStatus('verified')
-    updateJob(id, {
+    await updateJob(id, {
       verifyStatus: 'verified',
       status: 'verified',
       commissionAmount: amount,
@@ -108,11 +108,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setShowRevisitModal(true)
   }
 
-  function handleConfirmRevisit() {
+  async function handleConfirmRevisit() {
     const staffName = fieldStaff.find(s => s.id === revisitStaff)?.name
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const j = job!
-    const newJob = addJob({
+    const newJob = await addJob({
       type: j.type,
       customerName: j.customer.name,
       phone: j.customer.phone,
@@ -122,7 +122,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       notes: revisitNotes || `Revisit from ${j.jobNumber}`,
       assignedStaff: staffName ? [staffName] : undefined,
     })
-    updateJob(id, {
+    await updateJob(id, {
       verifyStatus: 'rejected',
       status: 'need_revisit',
       timelineLabel: `Revisit Requested · New Job ${newJob.jobNumber}`,
