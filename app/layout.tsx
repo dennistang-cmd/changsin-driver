@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full">
         <StoreHydration />
         <AuthGuard />
-        <main className="max-w-md mx-auto min-h-screen pb-28">
+        <main className="max-w-md mx-auto min-h-screen pb-36">
           {children}
         </main>
         <BottomNav />

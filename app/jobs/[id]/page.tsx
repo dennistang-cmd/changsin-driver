@@ -319,8 +319,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
       {/* Revisit Modal */}
       {showRevisitModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-md bg-white rounded-t-3xl px-5 py-6 flex flex-col gap-4">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40">
+          <div className="w-full max-w-md bg-white rounded-t-3xl px-5 pt-6 pb-8 flex flex-col gap-4">
             <div>
               <h3 className="text-base font-bold text-gray-900">Request Revisit</h3>
               <p className="text-xs text-gray-400 mt-0.5">A new job will be created with the same customer details.</p>

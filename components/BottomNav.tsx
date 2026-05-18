@@ -64,8 +64,8 @@ export default function BottomNav() {
 
       {/* Logout confirm */}
       {showLogout && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
-          <div className="w-full max-w-md bg-white rounded-t-2xl px-5 py-6">
+        <div className="fixed inset-0 z-[60] bg-black/40 flex items-end justify-center" onClick={() => setShowLogout(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-2xl px-5 pt-6 pb-8" onClick={e => e.stopPropagation()}>
             <p className="text-sm font-semibold text-gray-800 mb-1">Sign out?</p>
             <p className="text-xs text-gray-500 mb-5">You will need to sign in again to access the system.</p>
             <div className="flex gap-3">

@@ -159,7 +159,7 @@ export default function StaffPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           <div className="relative w-full max-w-md bg-white rounded-t-3xl px-5 pt-6 pb-8 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
