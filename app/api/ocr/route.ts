@@ -16,11 +16,6 @@ Return ONLY valid JSON with these exact keys:
 If a field is not visible or unclear, return an empty string for that field.
 Do not include any text outside the JSON.`
 
-const client = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY!,
-})
-
 export async function POST(req: NextRequest) {
   try {
     const { image } = await req.json()
@@ -29,6 +24,11 @@ export async function POST(req: NextRequest) {
     if (!process.env.DEEPSEEK_API_KEY) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
+
+    const client = new OpenAI({
+      baseURL: 'https://api.deepseek.com',
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    })
 
     const params = {
       model: 'deepseek-v4-pro',
